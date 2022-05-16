@@ -1,37 +1,82 @@
 # See config section to setup script for your videos
 
+import os
 try:
     from moviepy.editor import *
 
 except:
-    print("pip install moviepy")
+    os.system("pip install moviepy")
 
 try:
     import cv2
 
 except:
-    print("pip install opencv-python")
+    os.system("pip install opencv-python")
+
+try:
+    import kivy
+except:
+    os.system("pip install kivy")
+
+from kivy.app import App
+from kivy.uix.boxlayout import *
+from kivy.uix.label import *
+from kivy.uix.textinput import *
+from kivy.uix.button import *
 
 
 # ******************CONFIG**************************************************
-video_location = "/home/*****/Videos/"  # Location of Video Folder
+#video_location = "/home/*****/Videos/"  # Location of Video Folder
 video = "sample-mp4-file.mp4" # filename
 zoom_in_interval = 4    # Change Zoom In Time Interval
 zoom_out_interval = 10  # Change Zoom Out Time Interval
 # **************************************************************************
 
 
-def grab_audio():
-    movie_clip = VideoFileClip(video_location + video)
+class AutoVidZoom(App):
+    def __init__(self):
+        super().__init__()
+        self.text_input = None
+        self.label = None
+        self.process_active = False
+
+    def build(self):
+        layout = BoxLayout(orientation='vertical', spacing=5)
+        self.label = Label(text='Status: Enter Location: ')
+        self.text_input = TextInput(font_size=20, multiline=False, height=5, size_hint=(1,.2))
+        button = Button(text='Process Videos', size_hint=(1, .2))
+        button.bind(on_press=self.button_clicked)
+
+        layout.add_widget(self.label)
+        layout.add_widget(self.text_input)
+        layout.add_widget(button)
+        return layout
+
+    def button_clicked(self, button):
+        video_location = self.label.text
+        self.label.text = "Status: Processing Video Please Wait..."
+
+        if not self.process_active:
+            self.process_active = True
+            process_movie(video_location)
+
+
+def grab_audio(video_location):
+
+    try:
+        movie_clip = VideoFileClip(video_location + video)
+    except IOError:
+        print("Invalid File Location or Type")
+
     return movie_clip.audio
 
 
-def process_movie():
-    movie = cv2.VideoCapture(video_location + video)
+def process_movie(video_location):
+    movie = cv2.VideoCapture(video_location)
     fps = movie.get(cv2.cv2.CAP_PROP_FPS)
     width = int(movie.get(3))
     height = int(movie.get(4))
-    audio = grab_audio()
+    audio = grab_audio(video_location)
     frame_list = []
     video_time = 0
     zoom_time = 0
@@ -75,5 +120,6 @@ def process_movie():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    process_movie()
+    AutoVidZoom().run()
+    # process_movie()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
