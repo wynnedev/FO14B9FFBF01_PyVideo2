@@ -26,8 +26,8 @@ from kivy.uix.button import *
 
 
 # ******************CONFIG**************************************************
-#video_location = "/home/*****/Videos/"  # Location of Video Folder
-video = "sample-mp4-file.mp4" # filename
+# video_location = "/home/*****/Videos/"  # Location of Video Folder
+# video = "sample-mp4-file.mp4" # filename
 zoom_in_interval = 4    # Change Zoom In Time Interval
 zoom_out_interval = 10  # Change Zoom Out Time Interval
 # **************************************************************************
@@ -53,20 +53,26 @@ class AutoVidZoom(App):
         return layout
 
     def button_clicked(self, button):
-        video_location = self.label.text
         self.label.text = "Status: Processing Video Please Wait..."
+        video_location = self.text_input.text
 
         if not self.process_active:
             self.process_active = True
             process_movie(video_location)
+            self.process_active = False
+            self.label.text = "Status: Processing Complete. Enter new Location"
 
 
 def grab_audio(video_location):
 
     try:
-        movie_clip = VideoFileClip(video_location + video)
+        movie_clip = VideoFileClip(video_location)
+
     except IOError:
         print("Invalid File Location or Type")
+
+    except UnboundLocalError:
+        print("Invalid File Location")
 
     return movie_clip.audio
 
@@ -121,5 +127,4 @@ def process_movie(video_location):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     AutoVidZoom().run()
-    # process_movie()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
