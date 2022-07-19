@@ -20,47 +20,65 @@ except:
 
 from kivy.app import App
 from kivy.uix.boxlayout import *
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import *
 from kivy.uix.textinput import *
 from kivy.uix.button import *
+import time
+import threading
 
 
 # ******************CONFIG**************************************************
-# video_location = "/home/*****/Videos/"  # Location of Video Folder
-# video = "sample-mp4-file.mp4" # filename
-zoom_in_interval = 4    # Change Zoom In Time Interval
-zoom_out_interval = 10  # Change Zoom Out Time Interval
+
 # **************************************************************************
+
+class UIScreen(GridLayout):
+
+    def __init__(self, **kwargs):
+        super(UIScreen, self).__init__(**kwargs)
+        self.status_string = "Click Process to Begin"
+        self.rows = 4
+        self.row_force_default = True
+        self.row_default_height = 30
+        self.column_default_height = 30
+        self.add_widget(Label(text="ZoomIn Interval"))
+        self.ZoomInInterval = TextInput(text=str(0), multiline=False, height=20)
+        self.add_widget(self.ZoomInInterval)
+        self.add_widget(Label(text="ZoomOut Interval"))
+        self.ZoomOutInterval = TextInput(text=str(0), multiline=False)
+        self.add_widget(self.ZoomOutInterval)
+        self.add_widget(Label(text="File Location"))
+        self.FileLocation = TextInput(text="Enter File Location Here", multiline=False)
+        self.add_widget(self.FileLocation)
+        self.button = Button(text='Process Videos', size_hint=(1, .2))
+        self.add_widget(self.button)
+        self.button.bind(on_press=self.button_clicked)
+        self.StatusLabel = Label(text=self.status_string)
+        self.add_widget(self.StatusLabel)
+        self.process_active = False
+
+    def update_button_thread(self):
+        threading.Thread(target=self.update_button).start()
+
+    def update_button(self):
+        self.button.disabled = True
+        self.button.text = "Please Wait"
+        status_string = process_movie(self.FileLocation.text, int(self.ZoomInInterval.text),
+                                      int(self.ZoomOutInterval.text))
+        self.StatusLabel.text = status_string
+        self.button.text = "Process Video"
+        self.button.disabled = False
+
+    def button_clicked(self, button):
+        self.update_button_thread()
 
 
 class AutoVidZoom(App):
     def __init__(self):
         super().__init__()
-        self.text_input = None
-        self.label = None
-        self.process_active = False
 
     def build(self):
-        layout = BoxLayout(orientation='vertical', spacing=5)
-        self.label = Label(text='Status: Enter Location: ')
-        self.text_input = TextInput(font_size=20, multiline=False, height=5, size_hint=(1,.2))
-        button = Button(text='Process Videos', size_hint=(1, .2))
-        button.bind(on_press=self.button_clicked)
-
-        layout.add_widget(self.label)
-        layout.add_widget(self.text_input)
-        layout.add_widget(button)
-        return layout
-
-    def button_clicked(self, button):
-        self.label.text = "Status: Processing Video Please Wait..."
-        video_location = self.text_input.text
-
-        if not self.process_active:
-            self.process_active = True
-            process_movie(video_location)
-            self.process_active = False
-            self.label.text = "Status: Processing Complete. Enter new Location"
+        return UIScreen()
 
 
 def grab_audio(video_location):
@@ -70,25 +88,31 @@ def grab_audio(video_location):
 
     except IOError:
         print("Invalid File Location or Type")
+        return None
 
     except UnboundLocalError:
         print("Invalid File Location")
+        return None
 
     return movie_clip.audio
 
 
-def process_movie(video_location):
+def process_movie(video_location, zoom_in_interval, zoom_out_interval):
     movie = cv2.VideoCapture(video_location)
     fps = movie.get(cv2.cv2.CAP_PROP_FPS)
     width = int(movie.get(3))
     height = int(movie.get(4))
     audio = grab_audio(video_location)
+
+    if audio is None:
+        return "Audio Process Failure"
+
     frame_list = []
     video_time = 0
     zoom_time = 0
 
     if not movie.isOpened():
-        print("Video Stream Error")
+        return "Video Stream Error"
 
     while movie.isOpened():
         ret, frame = movie.read()
@@ -119,9 +143,10 @@ def process_movie(video_location):
         final_video.write_videofile("test.mp4", fps=fps)
         movie.release()
         cv2.destroyAllWindows()
+        return "Success"
 
     else:
-        print("No Frames to Process...")
+        return "No Frames to Process..."
 
 
 # Press the green button in the gutter to run the script.
